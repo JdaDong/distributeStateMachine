@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package raft;
+
+option go_package = "github.com/distributeStateMachine/proto";
+
+// RequestVote RPC - 候选人请求投票
+message RequestVoteRequest {
+  uint64 term = 1;           // 候选人的任期号
+  string candidate_id = 2;    // 请求选票的候选人 ID
+  uint64 last_log_index = 3;  // 候选人最后一条日志的索引
+  uint64 last_log_term = 4;   // 候选人最后一条日志的任期号
+}
+
+message RequestVoteResponse {
+  uint64 term = 1;        // 当前任期号，用于候选人更新自身
+  bool vote_granted = 2;  // true 表示同意投票
+}
+
+// AppendEntries RPC - Leader 用于日志复制和心跳
+message AppendEntriesRequest {
+  uint64 term = 1;              // Leader 的任期号
+  string leader_id = 2;         // Leader ID
+  uint64 prev_log_index = 3;    // 紧接新日志之前的日志索引
+  uint64 prev_log_term = 4;     // prev_log_index 对应的任期号
+  repeated LogEntry entries = 5; // 需要存储的日志条目（心跳时为空）
+  uint64 leader_commit = 6;     // Leader 已提交的最大日志索引
+}
+
+message AppendEntriesResponse {
+  uint64 term = 1;      // 当前任期号
+  bool success = 2;     // 如果 Follower 包含匹配的日志则为 true
+  uint64 match_index = 3; // Follower 匹配到的最大日志索引
+}
+
+// 日志条目
+message LogEntry {
+  uint64 term = 1;    // 日志被创建时的任期号
+  uint64 index = 2;   // 日志索引
+  bytes command = 3;   // 状态机命令
+}
+
+// 客户端请求
+message ClientRequest {
+  string operation = 1;  // GET / SET / DELETE
+  string key = 2;
+  string value = 3;
+}
+
+message ClientResponse {
+  bool success = 1;
+  string value = 2;
+  string error = 3;
+  string leader_hint = 4;  // 如果当前节点不是 Leader，提示 Leader 地址
+}
+
+// Raft 节点间 RPC 服务
+service RaftService {
+  rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
+  rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
+}
+
+// 客户端与集群交互的服务
+service ClientService {
+  rpc Propose(ClientRequest) returns (ClientResponse);
+  rpc Query(ClientRequest) returns (ClientResponse);
+}

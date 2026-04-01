@@ -1,0 +1,16 @@
+# 二进制文件
+bin/
+*.exe
+
+# 数据目录
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
